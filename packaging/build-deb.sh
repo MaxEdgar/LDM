@@ -8,6 +8,7 @@ VERSION="${1:-0.1.0}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PKG="ldm_${VERSION}_amd64"
 STAGE="$(mktemp -d)"
+TARGET_DIR="$(cargo metadata --manifest-path "$ROOT/Cargo.toml" --format-version 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')"
 trap 'rm -rf "$STAGE"' EXIT
 
 echo "==> Building release binaries..."
@@ -26,9 +27,9 @@ mkdir -p "$BIN_DIR" "$LIB_DIR" \
   "$STAGE/$PKG/DEBIAN"
 
 # Binaries.
-cp "$ROOT/target/release/ldm-gui" "$BIN_DIR/"
-cp "$ROOT/target/release/ldm" "$BIN_DIR/"
-cp "$ROOT/target/release/ldm-native-host" "$LIB_DIR/"
+cp "$TARGET_DIR/release/ldm-gui" "$BIN_DIR/"
+cp "$TARGET_DIR/release/ldm" "$BIN_DIR/"
+cp "$TARGET_DIR/release/ldm-native-host" "$LIB_DIR/"
 
 # Native messaging host manifests (system-wide: /usr/lib/mozilla + /etc/chromium).
 mkdir -p "$STAGE/$PKG/etc/chromium/native-messaging-hosts" \
@@ -85,5 +86,5 @@ EOF
 chmod +x "$STAGE/$PKG/DEBIAN/postinst"
 
 echo "==> Building $PKG.deb ..."
-dpkg-deb --build --root-owner-group "$STAGE/$PKG" "$ROOT/target/$PKG.deb"
-echo "==> Done: target/$PKG.deb"
+dpkg-deb --build --root-owner-group "$STAGE/$PKG" "$TARGET_DIR/$PKG.deb"
+echo "==> Done: $TARGET_DIR/$PKG.deb"

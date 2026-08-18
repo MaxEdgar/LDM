@@ -8,10 +8,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ARCH="${ARCH:-x86_64}"
-APP_DIR="$ROOT/target/AppDir"
+TARGET_DIR="$(cargo metadata --manifest-path "$ROOT/Cargo.toml" --format-version 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')"
+APP_DIR="$TARGET_DIR/AppDir"
 
-LINUXDEPLOY="${LINUXDEPLOY:-$ROOT/target/linuxdeploy-$ARCH.AppImage}"
-APPIMAGETOOL="${APPIMAGETOOL:-$ROOT/target/appimagetool-$ARCH.AppImage}"
+LINUXDEPLOY="${LINUXDEPLOY:-$TARGET_DIR/linuxdeploy-$ARCH.AppImage}"
+APPIMAGETOOL="${APPIMAGETOOL:-$TARGET_DIR/appimagetool-$ARCH.AppImage}"
 
 if [ ! -x "$LINUXDEPLOY" ]; then
   echo "==> Downloading linuxdeploy..."
@@ -33,9 +34,9 @@ rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/usr/bin" "$APP_DIR/usr/lib/ldm" "$APP_DIR/usr/share/applications" \
   "$APP_DIR/usr/share/icons/hicolor/512x512/apps"
 
-cp "$ROOT/target/release/ldm-gui" "$APP_DIR/usr/bin/"
-cp "$ROOT/target/release/ldm" "$APP_DIR/usr/bin/"
-cp "$ROOT/target/release/ldm-native-host" "$APP_DIR/usr/lib/ldm/"
+cp "$TARGET_DIR/release/ldm-gui" "$APP_DIR/usr/bin/"
+cp "$TARGET_DIR/release/ldm" "$APP_DIR/usr/bin/"
+cp "$TARGET_DIR/release/ldm-native-host" "$APP_DIR/usr/lib/ldm/"
 cp "$ROOT/assets/icon.png" "$APP_DIR/usr/share/icons/hicolor/512x512/apps/ldm.png"
 cp "$ROOT/assets/icon.png" "$APP_DIR/ldm.png"
 
@@ -61,5 +62,5 @@ if ! "$LINUXDEPLOY" --appimage-extract-and-run --appdir "$APP_DIR" \
 fi
 
 echo "==> Building AppImage..."
-"$APPIMAGETOOL" --appimage-extract-and-run "$APP_DIR" "$ROOT/target/LDM-$ARCH.AppImage"
-echo "==> Done: target/LDM-$ARCH.AppImage"
+"$APPIMAGETOOL" --appimage-extract-and-run "$APP_DIR" "$TARGET_DIR/LDM-$ARCH.AppImage"
+echo "==> Done: $TARGET_DIR/LDM-$ARCH.AppImage"
