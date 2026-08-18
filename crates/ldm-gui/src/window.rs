@@ -659,9 +659,13 @@ fn build_speed_graph(state: &Rc<App>) -> gtk::DrawingArea {
 }
 
 /// Per-connection progress bars for the selected download (IDM-style).
+///
+/// The panel height is recomputed by `App::update_progress_row` from the live
+/// segment count, so bars keep a comfortable size whether the download uses 1
+/// or 32 connections.
 fn build_conn_bars(state: &Rc<App>) -> gtk::DrawingArea {
     let da = gtk::DrawingArea::new();
-    da.set_size_request(-1, 84);
+    da.set_size_request(-1, 58);
     da.set_margin_start(12);
     da.set_margin_end(12);
     da.set_margin_bottom(4);
@@ -671,7 +675,7 @@ fn build_conn_bars(state: &Rc<App>) -> gtk::DrawingArea {
         let w = alloc.width().max(20) as f64;
         let h = alloc.height().max(16) as f64;
         cr.set_source_rgb(0.07, 0.08, 0.1);
-        crate::ui::rounded_rect(cr, 0.0, 0.0, w, h, 5.0);
+        crate::ui::rounded_rect(cr, 0.0, 0.0, w, h, 6.0);
         let _ = cr.fill();
 
         let id = state2.selected_id();
@@ -684,36 +688,40 @@ fn build_conn_bars(state: &Rc<App>) -> gtk::DrawingArea {
                 .unwrap_or_default(),
             None => Vec::new(),
         };
-        // Fall back to one overall progress bar when the selected download has
-        // no live segment data (paused / completed / single-stream).
+
+        // Overall progress of the selected download (used for the fallback bar
+        // and for segments whose server range end is unknown).
+        let overall = id.and_then(|i| {
+            state2.records.borrow().get(&i).map(|r| {
+                let total = r.total_bytes.unwrap_or(r.downloaded_bytes).max(1);
+                (r.downloaded_bytes as f64 / total as f64).clamp(0.0, 1.0)
+            })
+        });
+
+        // Fallback: single overall bar (paused / completed / single-stream).
         if segs.is_empty() {
-            let overall = id.and_then(|i| {
-                state2
-                    .records
-                    .borrow()
-                    .get(&i)
-                    .map(|r| {
-                        let total = r.total_bytes.unwrap_or(r.downloaded_bytes).max(1);
-                        (r.downloaded_bytes as f64 / total as f64).clamp(0.0, 1.0)
-                    })
-            });
             if let Some(frac) = overall {
-                let bar_h = (h - 16.0).max(6.0);
-                let bar_x = 34.0;
-                let bar_w = (w - bar_x - 12.0).max(20.0);
+                let bar_h = 20.0;
+                let bar_x = 44.0;
+                let bar_w = (w - bar_x - 56.0).max(20.0);
                 let y = (h - bar_h) / 2.0;
                 cr.set_source_rgb(0.16, 0.18, 0.23);
-                crate::ui::rounded_rect(cr, bar_x, y, bar_w, bar_h, 4.0);
+                crate::ui::rounded_rect(cr, bar_x, y, bar_w, bar_h, 5.0);
                 let _ = cr.fill();
                 if frac > 0.0 {
                     cr.set_source_rgb(0.23, 0.51, 0.96);
-                    crate::ui::rounded_rect(cr, bar_x, y, (bar_w * frac).max(2.0), bar_h, 4.0);
+                    crate::ui::rounded_rect(cr, bar_x, y, (bar_w * frac).max(2.0), bar_h, 5.0);
                     let _ = cr.fill();
                 }
                 cr.set_source_rgb(0.85, 0.87, 0.9);
                 let _ = cr.select_font_face("Sans", gtk::cairo::FontSlant::Normal, gtk::cairo::FontWeight::Bold);
+                cr.set_font_size(11.0);
+                cr.move_to(12.0, y + bar_h / 2.0 + 3.5);
+                let _ = cr.show_text("Overall");
+                cr.set_source_rgb(0.55, 0.58, 0.63);
+                let _ = cr.select_font_face("Sans", gtk::cairo::FontSlant::Normal, gtk::cairo::FontWeight::Normal);
                 cr.set_font_size(10.0);
-                cr.move_to(10.0, y + bar_h / 2.0 + 3.5);
+                cr.move_to(bar_x + bar_w + 6.0, y + bar_h / 2.0 + 3.0);
                 let _ = cr.show_text(&format!("{:.0}%", frac * 100.0));
                 return glib::Propagation::Proceed;
             }
@@ -726,17 +734,24 @@ fn build_conn_bars(state: &Rc<App>) -> gtk::DrawingArea {
         }
 
         let n = segs.len();
-        let show_labels = n <= 12;
-        let label_w = if show_labels { 22.0 } else { 6.0 };
-        let bar_x = label_w;
-        let bar_w = (w - bar_x - 8.0).max(20.0);
-        let gap = if n > 12 { 1.0 } else { 3.0 };
-        let bar_h = ((h - 10.0 - gap * (n as f64 - 1.0)) / n as f64).max(3.0);
+        let cap = n.min(32) as f64;
+        let label_w = 20.0;
+        let pct_w = 34.0;
+        let bar_x = label_w + 2.0;
+        let bar_w = (w - bar_x - pct_w - 10.0).max(20.0);
+        let gap = if n > 12 { 2.0 } else { 4.0 };
+        let bar_h = ((h - 10.0 - gap * (cap - 1.0)) / cap).max(6.0);
 
-        for (i, s) in segs.iter().enumerate() {
+        for (i, s) in segs.iter().take(n.min(32)).enumerate() {
             let y = 5.0 + i as f64 * (bar_h + gap);
-            let total_len = (s.end.unwrap_or(s.start + s.downloaded.max(0)) - s.start + 1).max(1) as f64;
-            let frac = ((s.downloaded as f64) / total_len).clamp(0.0, 1.0);
+            let frac = if let Some(end) = s.end {
+                let total_len = (end - s.start + 1).max(1) as f64;
+                ((s.downloaded as f64) / total_len).clamp(0.0, 1.0)
+            } else {
+                // Server reported no range end (size unknown): use the overall
+                // progress rather than inventing a 100% fill.
+                overall.unwrap_or(0.0)
+            };
 
             // Track.
             cr.set_source_rgb(0.16, 0.18, 0.23);
@@ -744,20 +759,24 @@ fn build_conn_bars(state: &Rc<App>) -> gtk::DrawingArea {
             let _ = cr.fill();
             // Fill (blue while active, green when done).
             if frac >= 1.0 {
-                cr.set_source_rgb(0.18, 0.62, 0.36);
+                cr.set_source_rgb(0.16, 0.62, 0.36);
             } else {
                 cr.set_source_rgb(0.23, 0.51, 0.96);
             }
-            crate::ui::rounded_rect(cr, bar_x, y, (bar_w * frac).max(if frac > 0.0 { 2.0 } else { 0.0 }), bar_h, 3.0);
+            let fill_w = (bar_w * frac).max(if frac > 0.0 { 2.0 } else { 0.0 });
+            crate::ui::rounded_rect(cr, bar_x, y, fill_w, bar_h, 3.0);
             let _ = cr.fill();
 
-            if show_labels {
-                cr.set_source_rgb(0.75, 0.77, 0.8);
-                let _ = cr.select_font_face("Sans", gtk::cairo::FontSlant::Normal, gtk::cairo::FontWeight::Normal);
-                cr.set_font_size(8.5);
-                cr.move_to(4.0, y + bar_h - 1.5);
-                let _ = cr.show_text(&format!("{}", i + 1));
-            }
+            // Segment number + percent labels.
+            cr.set_source_rgb(0.7, 0.73, 0.78);
+            let _ = cr.select_font_face("Sans", gtk::cairo::FontSlant::Normal, gtk::cairo::FontWeight::Normal);
+            cr.set_font_size(9.0);
+            cr.move_to(4.0, y + bar_h / 2.0 + 3.0);
+            let _ = cr.show_text(&format!("{}", i + 1));
+            cr.set_source_rgb(0.55, 0.58, 0.63);
+            cr.set_font_size(9.0);
+            cr.move_to(bar_x + bar_w + 6.0, y + bar_h / 2.0 + 3.0);
+            let _ = cr.show_text(&format!("{:.0}%", frac * 100.0));
         }
         glib::Propagation::Proceed
     });

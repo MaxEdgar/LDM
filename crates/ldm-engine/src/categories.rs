@@ -26,7 +26,7 @@ pub const BUILTIN_CATEGORIES: &[(&str, &[&str])] = &[
     ),
     (
         "Programs",
-        &[".exe", ".msi", ".deb", ".rpm", ".apk", ".dmg", ".appimage", ".flatpak", ".run", ".sh", ".bin", ".pkg"],
+        &[".exe", ".msi", ".deb", ".rpm", ".apk", ".dmg", ".appimage", ".flatpak", ".run", ".sh", ".pkg"],
     ),
     (
         "Videos",
@@ -81,6 +81,8 @@ mod tests {
         assert_eq!(category_for_extension(".deb"), "Programs");
         assert_eq!(category_for_extension(".png"), "Images");
         assert_eq!(category_for_extension(".xyzabc"), "General");
+        // A bare .bin is a generic binary blob, not a program.
+        assert_eq!(category_for_extension(".bin"), "General");
         assert_eq!(extension_of("file.tar.gz"), ".tar.gz");
         assert_eq!(extension_of("a.MP4"), ".mp4");
     }

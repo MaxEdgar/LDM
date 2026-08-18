@@ -268,31 +268,36 @@ pub fn show_add_dialog(state: &Rc<App>) {
             if url_for_probe.text() != url {
                 return glib::ControlFlow::Continue;
             }
+            // Derive a filename from the URL directly; the probe result may
+            // refine it (Content-Disposition) when it succeeds.
+            let url_name = ldm_engine::urlutil::validate_url(&url)
+                .ok()
+                .and_then(|u| ldm_engine::urlutil::filename_from_url(&u));
+
+            // Prefill the name field (only when the user has not typed one)
+            // and keep the category in sync with the file extension.
+            let apply = |fname: &str| {
+                let cur = name_for_probe.text().to_string();
+                let auto = auto_name.borrow().clone();
+                if cur.trim().is_empty() || auto.as_deref() == Some(cur.as_str()) {
+                    name_for_probe.set_text(fname);
+                    *auto_name.borrow_mut() = Some(fname.to_string());
+                }
+                let ext = ldm_engine::categories::extension_of(fname);
+                let category = ldm_engine::categories::category_for_extension(&ext);
+                let cats: Vec<String> = ldm_engine::categories::BUILTIN_CATEGORIES
+                    .iter()
+                    .map(|c| c.0.to_string())
+                    .collect();
+                if let Some(idx) = cats.iter().position(|c| *c == category) {
+                    cat_for_probe.set_active(Some(idx as u32));
+                }
+            };
             match result {
                 Ok(info) => {
-                    let filename = info.filename.clone().or_else(|| {
-                        ldm_engine::urlutil::validate_url(&url)
-                            .ok()
-                            .and_then(|u| ldm_engine::urlutil::filename_from_url(&u))
-                    });
-                    if let Some(fname) = filename.clone() {
-                        // Only prefill when the user has not typed a name yet.
-                        let cur = name_for_probe.text().to_string();
-                        let auto = auto_name.borrow().clone();
-                        if cur.trim().is_empty() || auto.as_deref() == Some(cur.as_str()) {
-                            name_for_probe.set_text(&fname);
-                            *auto_name.borrow_mut() = Some(fname.clone());
-                        }
-                        // Category follows the file extension.
-                        let ext = ldm_engine::categories::extension_of(&fname);
-                        let category = ldm_engine::categories::category_for_extension(&ext);
-                        let cats: Vec<String> = ldm_engine::categories::BUILTIN_CATEGORIES
-                            .iter()
-                            .map(|c| c.0.to_string())
-                            .collect();
-                        if let Some(idx) = cats.iter().position(|c| *c == category) {
-                            cat_for_probe.set_active(Some(idx as u32));
-                        }
+                    let filename = info.filename.clone().or(url_name.clone());
+                    if let Some(fname) = &filename {
+                        apply(fname);
                     }
                     // Detection line: size · ranges · resume.
                     let mut parts = Vec::new();
@@ -300,7 +305,7 @@ pub fn show_add_dialog(state: &Rc<App>) {
                         parts.push(crate::app::format_bytes(sz));
                     }
                     parts.push(if info.ranges_supported {
-                        "multi-connection ✓".to_string()
+                        "multi-connection".to_string()
                     } else {
                         "single connection".to_string()
                     });
@@ -312,6 +317,11 @@ pub fn show_add_dialog(state: &Rc<App>) {
                     detect_for_probe.set_text(&parts.join(" · "));
                 }
                 Err(e) => {
+                    // Server unreachable / refused the probe: still prefill
+                    // what we can from the URL (IDM-style).
+                    if let Some(fname) = &url_name {
+                        apply(fname);
+                    }
                     detect_for_probe.set_text(&format!("could not detect ({e})"));
                 }
             }

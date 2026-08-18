@@ -441,9 +441,13 @@ impl App {
             self.seg_progress
                 .borrow_mut()
                 .insert(id, segments.to_vec());
-            // Keep the connection-bars panel in sync when this download is selected.
+            // Keep the connection-bars panel in sync when this download is
+            // selected, resizing it so bars stay readable for 1-32 connections.
             if self.selected_id() == Some(id) {
                 if let Some(bars) = self.conn_bars.borrow().as_ref() {
+                    let n = segments.len().clamp(1, 32);
+                    let h = (10 + n * 14).clamp(58, 220);
+                    bars.set_size_request(-1, h as i32);
                     bars.queue_draw();
                 }
             }
@@ -490,6 +494,13 @@ impl App {
     /// (Re)draw the connection bars for the selected download.
     pub fn redraw_conn_bars(&self) {
         if let Some(da) = self.conn_bars.borrow().as_ref() {
+            if let Some(id) = self.selected_id() {
+                if let Some(segs) = self.seg_progress.borrow().get(&id) {
+                    let n = segs.len().clamp(1, 32);
+                    let h = (10 + n * 14).clamp(58, 220);
+                    da.set_size_request(-1, h as i32);
+                }
+            }
             da.queue_draw();
         }
     }
