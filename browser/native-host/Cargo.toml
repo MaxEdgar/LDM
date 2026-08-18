@@ -1,0 +1,18 @@
+[package]
+name = "ldm-native-host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "LDM browser native-messaging host: forwards download requests from browser extensions to the desktop app over a local authenticated socket."
+
+[dependencies]
+ldm-engine = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+dirs = "5"
+
+[dev-dependencies]
+tempfile = "3"
+ldm-test-server = { path = "../../crates/ldm-test-server" }

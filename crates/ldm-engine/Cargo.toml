@@ -1,0 +1,43 @@
+[package]
+name = "ldm-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "LDM (Linux Download Manager) engine: HTTP/HTTPS segmented downloads, resume, retry, rate limiting, queues, scheduling, persistence."
+authors.workspace = true
+
+[dependencies]
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+reqwest = { version = "0.12", default-features = false, features = ["default-tls", "http2", "cookies", "socks", "stream"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+url = "2"
+rand = "0.8"
+libc = "0.2"
+dirs = "5"
+arboard = "3"
+notify-rust = "4"
+sha2 = "0.10"
+md-5 = "0.10"
+hex = "0.4"
+percent-encoding = "2"
+tokio-util = { version = "0.7", features = ["io"] }
+futures-util = "0.3"
+bytes = "1"
+base64 = "0.22"
+httpdate = "1"
+async-trait = "0.1"
+
+[dev-dependencies]
+ldm-test-server = { path = "../ldm-test-server" }
+tempfile = "3"
+futures-util = "0.3"
+
+[features]
+default = []
+# Enable the local IPC socket server used by browser integration.
+ipc = []

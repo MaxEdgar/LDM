@@ -1,0 +1,7 @@
+{
+  "name": "ldm",
+  "description": "LDM download manager — native messaging host",
+  "path": "/PATH/TO/ldm-native-host",
+  "type": "stdio",
+  "allowed_extensions": ["ldm-download@ldm.app"]
+}

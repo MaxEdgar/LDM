@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "LDM Download Manager",
+  "version": "0.1.0",
+  "description": "Send downloads from your browser to the LDM desktop download manager (multi-connection, resumable, scheduled).",
+  "permissions": [
+    "nativeMessaging",
+    "downloads",
+    "cookies",
+    "storage",
+    "notifications"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "LDM Download Manager",
+    "default_popup": "options.html"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "ldm-download@ldm.app",
+      "strict_min_version": "109.0"
+    }
+  }
+}

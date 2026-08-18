@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>LDM Download Manager — Options</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 560px; margin: 24px auto; padding: 0 16px; color: #1c2230; }
+    h1 { font-size: 20px; }
+    label { display: block; margin: 12px 0 4px; font-weight: 600; }
+    input[type="text"], textarea { width: 100%; box-sizing: border-box; padding: 6px; }
+    textarea { height: 120px; font-family: ui-monospace, monospace; font-size: 12px; }
+    .row { margin: 10px 0; }
+    .hint { color: #667; font-size: 12px; margin-top: 2px; }
+    button { margin-top: 16px; padding: 8px 18px; }
+    .status { color: #2e9e5b; font-weight: 600; margin-top: 8px; min-height: 18px; }
+  </style>
+</head>
+<body>
+  <h1>LDM Download Manager</h1>
+  <div class="row">
+    <label><input type="checkbox" id="enabled" /> Enable browser integration</label>
+    <div class="hint">Hand matching downloads to the LDM desktop app.</div>
+  </div>
+  <div class="row">
+    <label><input type="checkbox" id="autoCapture" /> Automatically capture matching downloads</label>
+    <div class="hint">When off, you get a notification asking before each download is sent to LDM.</div>
+  </div>
+  <div class="row">
+    <label><input type="checkbox" id="sendCookies" /> Send cookies with captured downloads</label>
+    <div class="hint">Required for sites that gate downloads behind a login. Cookies go only to the local LDM app.</div>
+  </div>
+  <label for="captureExtensions">Capture these file extensions</label>
+  <textarea id="captureExtensions" spellcheck="false"></textarea>
+  <div class="hint">Comma-separated, with leading dots (e.g. .iso, .zip, .mp4).</div>
+
+  <label for="excludeHosts">Never capture from these hosts</label>
+  <textarea id="excludeHosts" spellcheck="false"></textarea>
+  <div class="hint">Comma-separated hostnames. Login/account pages are always excluded.</div>
+
+  <button id="save">Save</button>
+  <div class="status" id="status"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>

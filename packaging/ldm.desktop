@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Name=LDM
+Name[en]=LDM
+GenericName=Download Manager
+GenericName[en]=Download Manager
+Comment=Download files over HTTP/HTTPS with multi-connection, resume, queue and scheduling support
+Comment[en]=Download files over HTTP/HTTPS with multi-connection, resume, queue and scheduling support
+Exec=ldm-gui %U
+Icon=ldm
+Terminal=false
+Categories=Network;FileTransfer;Utility;
+Keywords=download;downloader;internet;http;manager;
+MimeType=x-scheme-handler/http;x-scheme-handler/https;
+StartupNotify=true
+StartupWMClass=ldm-gui

@@ -1,0 +1,9 @@
+# NovaFetch — Cargo workspace configuration.
+#
+# This machine environment is memory-constrained (3.6 GB), so we cap parallel
+# jobs to avoid OOM during large builds. Build artifacts live on the larger
+# root partition to keep the home directory footprint small.
+
+[build]
+jobs = 2
+target-dir = "/opt/ldm-target"
